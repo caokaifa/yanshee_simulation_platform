@@ -7,8 +7,8 @@
 
 Robot::Robot(ros::NodeHandle& n)
 {
-    joint_pub = n.advertise<ubt_msgs::angles_set>("hal_angles_set", 1);
-    
+    // joint_pub = n.advertise<ubt_msgs::angles_set>("hal_angles_set", 1);
+    joint_pub = n.advertise<ubt_msgs::servo_write_list>("/hal_servo_write", 1);
     joint_angle_.angles.resize(17);
     
     min_rad[head] = -0.78;  max_rad[head] = 0.78;
@@ -42,23 +42,23 @@ Robot::Robot(ros::NodeHandle& n)
     right_current_position.y = 0;
     right_current_position.z = a2+a3;
 
-    joint_angle_.angles[0] = int((90 + 0)*2048/180);
-    joint_angle_.angles[1] = int((90 + 0)*2048/180);
-    joint_angle_.angles[2] = int((90 + 0)*2048/180);
-    joint_angle_.angles[3] = int((90 + 0)*2048/180);
-    joint_angle_.angles[4] = int((40 + 0)*2048/180);
-    joint_angle_.angles[5] = int((15 + 0)*2048/180);
-    joint_angle_.angles[6] = int((90 + 0)*2048/180);
-    joint_angle_.angles[7] = int((60 + 0)*2048/180);
-    joint_angle_.angles[8] = int((76 - 0)*2048/180);
-    joint_angle_.angles[9] = int((110 - 0)*2048/180);
-    joint_angle_.angles[10] = int((90 + 0)*2048/180);
-    joint_angle_.angles[11] = int((90 + 0)*2048/180);
-    joint_angle_.angles[12] = int((120 - 0)*2048/180);
-    joint_angle_.angles[13] = int((104 + 0)*2048/180);
-    joint_angle_.angles[14] = int((70 + 0)*2048/180);
-    joint_angle_.angles[15] = int((90 + 0)*2048/180);
-    joint_angle_.angles[16] = int((90 + 0)*2048/180);
+    joint_angle_.angles[0] = int((90 + 0));
+    joint_angle_.angles[1] = int((90 + 0));
+    joint_angle_.angles[2] = int((90 + 0));
+    joint_angle_.angles[3] = int((90 + 0));
+    joint_angle_.angles[4] = int((40 + 0));
+    joint_angle_.angles[5] = int((15 + 0));
+    joint_angle_.angles[6] = int((90 + 0));
+    joint_angle_.angles[7] = int((60 + 0));
+    joint_angle_.angles[8] = int((76 - 0));
+    joint_angle_.angles[9] = int((110 - 0));
+    joint_angle_.angles[10] = int((90 + 0));
+    joint_angle_.angles[11] = int((90 + 0));
+    joint_angle_.angles[12] = int((120 - 0));
+    joint_angle_.angles[13] = int((104 + 0));
+    joint_angle_.angles[14] = int((70 + 0));
+    joint_angle_.angles[15] = int((90 + 0));
+    joint_angle_.angles[16] = int((90 + 0));
     joint_angle_.time = 25;
     
     stop_flag = false;
@@ -70,13 +70,13 @@ Description:将每个关节的弧度转化为舵机的输出
 *************************************************************/
 void Robot::transform()
 {  
-    joint_angle_.angles[16] = int((pi/2-current_rad[head])*2048/pi);
-    joint_angle_.angles[0] = int((pi/2-current_rad[r_arm1])*2048/pi);
-    joint_angle_.angles[1] = int((pi-current_rad[r_arm2])*2048/pi);
-    joint_angle_.angles[2] = int((pi/2-current_rad[r_arm3])*2048/pi);
-    joint_angle_.angles[3] = int((pi/2-current_rad[l_arm1])*2048/pi);
-    joint_angle_.angles[4] = int(current_rad[l_arm2]*2048/pi);
-    joint_angle_.angles[5] = int((pi/2+current_rad[l_arm3])*2048/pi);
+    joint_angle_.angles[16] = int((pi/2-current_rad[head])*180/pi);
+    joint_angle_.angles[0] = int((pi/2-current_rad[r_arm1])*180/pi);
+    joint_angle_.angles[1] = int((pi-current_rad[r_arm2])*180/pi);
+    joint_angle_.angles[2] = int((pi/2-current_rad[r_arm3])*180/pi);
+    joint_angle_.angles[3] = int((pi/2-current_rad[l_arm1])*180/pi);
+    joint_angle_.angles[4] = int(current_rad[l_arm2]*180/pi);
+    joint_angle_.angles[5] = int((pi/2+current_rad[l_arm3])*180/pi);
     joint_angle_.time = 20;
     
 }
@@ -108,7 +108,18 @@ void Robot::robot_action()
         
     }
     transform();
-    joint_pub.publish(joint_angle_);
+    ubt_msgs::servo_write_1 msg_1;
+    ubt_msgs::servo_write_list msg_2;
+    
+    for(int i=0;i<17;i++)
+    {
+        msg_1.name = robot_state[i];
+        msg_1.angle = joint_angle_.angles[i];
+        msg_1.runtime = 20;
+        msg_2.data.push_back(msg_1);
+    }
+    joint_pub.publish(msg_2);
+    // joint_pub.publish(joint_angle_);
 
 }
 
@@ -137,7 +148,7 @@ void Robot::get_position(ARM_ID arm_id,Position& position)
     }
     else
     {
-        ROS_INFO("ARM_ID：%d error!",arm_id);
+        ROS_INFO("ARM_ID:%d error!",arm_id);
         return;
     }
     position.x = cos(theta_1)*((a2*cos(theta_2))+(a3*(cos(theta_2+theta_3))));
